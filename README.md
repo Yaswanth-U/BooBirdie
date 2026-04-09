@@ -1,6 +1,24 @@
 # BooBirdie
 All the necessary code and resources to build your own RC Ornithopter.
 
+## Description
+BooBirdie is a remote controlled RC (An ornithopter (from Ancient Greek ὄρνις (órnis) 'bird' and πτερόν (pterón) 'wing') is an aircraft that flies by flapping its wings.[Source: Wikipedia])
+
+the aircraft uses two N20 motors with encoders for its propulsion one for each wing and a servo for the tail to control pitch.
+
+### Control System
+the ornithopter works on the principle of differential thrust(control method using unequal power between engines on a multi-engine vehicle to create yaw (turning) moments) the two motors in the wings go out of phase to achieve this but for the aircraft to go straight after turning both the motors should go in phase to achieve this Flight controller needs precise control of speed as well as angle of each motor making encoders a crusial part of the control system. The tail is attached to a microservo which controls the pitch.
+
+### Power Management
+| Component    | Current Drawn |
+| ------------ | ------------- |
+| Motors       | 60mA*2        |
+| Servo        | 200mA         |
+| Raspberry pi | 90mA          |
+| Radio TX     | 100mA         |
+| **Total**    | 510mA         |
+
+
 ## Flapping wing lift thrust calculator
 html based calculator to fing thee thrust and lift of a given ornithopter based on the given configuration(Made based on research paper: [An Aerodynamics Calculation Method of a Flapping Wing
 Flying Robot Based on State-Space Airloads Theory*

@@ -8,6 +8,9 @@ the aircraft uses two N20 motors with encoders for its propulsion one for each w
 
 ### Control System
 the ornithopter works on the principle of differential thrust(control method using unequal power between engines on a multi-engine vehicle to create yaw (turning) moments) the two motors in the wings go out of phase to achieve this but for the aircraft to go straight after turning both the motors should go in phase to achieve this Flight controller needs precise control of speed as well as angle of each motor making encoders a crusial part of the control system. The tail is attached to a microservo which controls the pitch.
+![alt text](<Control System.png>)
+
+### Mechanical Design(Assembly)
 
 ### Power Management
 | Component    | Current Drawn |

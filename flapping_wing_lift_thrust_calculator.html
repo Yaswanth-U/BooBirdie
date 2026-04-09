@@ -1,0 +1,207 @@
+
+<style>
+.calc-wrap { padding: 1rem 0; font-size: 14px; color: var(--color-text-primary); }
+.section-label { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin: 1.5rem 0 0.75rem; }
+.formula-box { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 0.75rem 1rem; margin-bottom: 0.75rem; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.9; color: var(--color-text-primary); }
+.formula-box .comment { color: var(--color-text-secondary); font-size: 11.5px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+.input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.input-row label { width: 200px; font-size: 13px; color: var(--color-text-secondary); flex-shrink: 0; }
+.input-row input[type=range] { flex: 1; }
+.input-row .val { width: 70px; text-align: right; font-size: 13px; font-weight: 500; }
+.metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 0.75rem 1rem; }
+.metric .mlabel { font-size: 11.5px; color: var(--color-text-secondary); margin-bottom: 4px; }
+.metric .mvalue { font-size: 22px; font-weight: 500; }
+.metric .munit { font-size: 12px; color: var(--color-text-secondary); margin-left: 3px; }
+.metric.good .mvalue { color: var(--color-text-success); }
+.metric.warn .mvalue { color: var(--color-text-warning); }
+.metric.bad .mvalue { color: var(--color-text-danger); }
+.badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: var(--border-radius-md); margin-left: 6px; }
+.badge-info { background: var(--color-background-info); color: var(--color-text-info); }
+.badge-warn { background: var(--color-background-warning); color: var(--color-text-warning); }
+.divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 1.25rem 0; }
+.note { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; margin-top: 0.5rem; }
+</style>
+
+<div class="calc-wrap">
+  <h2 style="font-size: 18px; font-weight: 500; margin: 0 0 4px;">Flapping wing air craft thrust and lift calculator(Made using AI: Claude based on Res.Paper: https://doi.org/10.1109/ROBIO49542.2019.8961808)</h2>
+  <p style="font-size: 13px; color: var(--color-text-secondary); margin: 0 0 0.5rem;">Based on Peters' state-space airloads theory with strip integration — as used in the HITHawk paper</p>
+
+  <div class="section-label">Governing equations</div>
+  <div class="formula-box">
+    <span class="comment">Reduced frequency (ratio of flap timescale to convection timescale)</span><br>
+    k = π·f·c / U<br><br>
+    <span class="comment">Theodorsen lift deficiency function — Jones rational approximation</span><br>
+    F(k) = 1 − 0.165/(1+(0.0455/k)²) − 0.335/(1+(0.3/k)²)<br>
+    G(k) = [0.165·0.0455/k]/(1+(0.0455/k)²) + [0.335·0.3/k]/(1+(0.3/k)²)<br><br>
+    <span class="comment">Mean lift — strip theory integrated over span, with 3D planform correction η</span><br>
+    L̄ = ½·ρ·U²·(η·b·c)·2π·sin(α)·|C(k)|     <span class="comment">|C(k)| = √(F²+G²)</span><br><br>
+    <span class="comment">Mean thrust — Garrick-type propulsion minus parasitic drag</span><br>
+    T̄ = π·ρ·c·b²·Φ²·f²·F(k)  −  ½·ρ·U²·(η·b·c)·C_D0
+  </div>
+  <p class="note">η ≈ 0.80 for a tapered bird-like planform (accounts for 3D tip losses and camber). Valid for k &lt; 1 and small flexible deformation (flap freq ≤ 5 Hz for a bird-scale FAV). Thrust accuracy is lower than lift — see paper section IV.</p>
+
+  <hr class="divider">
+  <div class="section-label">Aircraft parameters</div>
+
+  <div class="grid-2">
+    <div>
+      <div class="input-row"><label>Weight W (g)</label><input type="range" id="W" min="100" max="2000" value="487" step="1"><span class="val"><span id="Wv">487</span> g</span></div>
+      <div class="input-row"><label>Wingspan b (m)</label><input type="range" id="b" min="0.3" max="3.0" value="1.6" step="0.05"><span class="val"><span id="bv">1.60</span> m</span></div>
+      <div class="input-row"><label>Mean chord c (m)</label><input type="range" id="c" min="0.05" max="0.8" value="0.3" step="0.01"><span class="val"><span id="cv">0.30</span> m</span></div>
+      <div class="input-row"><label>Planform efficiency η</label><input type="range" id="eta" min="0.60" max="1.00" value="0.80" step="0.01"><span class="val"><span id="etav">0.80</span></span></div>
+    </div>
+    <div>
+      <div class="input-row"><label>Flapping frequency f (Hz)</label><input type="range" id="f" min="0.5" max="10" value="2.0" step="0.5"><span class="val"><span id="fv">2.0</span> Hz</span></div>
+      <div class="input-row"><label>Flapping amplitude Φ (°)</label><input type="range" id="phi" min="5" max="40" value="20.7" step="0.1"><span class="val"><span id="phiv">20.7</span>°</span></div>
+      <div class="input-row"><label>Forward speed U (m/s)</label><input type="range" id="U" min="1" max="20" value="5" step="0.5"><span class="val"><span id="Uv">5.0</span> m/s</span></div>
+      <div class="input-row"><label>Angle of attack α (°)</label><input type="range" id="alpha" min="0" max="25" value="10" step="0.5"><span class="val"><span id="alphav">10.0</span>°</span></div>
+    </div>
+  </div>
+  <div class="input-row" style="max-width:480px;"><label>Parasitic drag coeff C_D0</label><input type="range" id="cd0" min="0.01" max="0.15" value="0.03" step="0.005"><span class="val"><span id="cd0v">0.030</span></span></div>
+
+  <hr class="divider">
+  <div class="section-label">Intermediate values</div>
+  <div class="grid-4" style="margin-bottom:12px;">
+    <div class="metric"><div class="mlabel">Wing area S</div><div class="mvalue"><span id="S">0.48</span><span class="munit">m²</span></div></div>
+    <div class="metric"><div class="mlabel">Aspect ratio AR</div><div class="mvalue"><span id="AR">5.33</span></div></div>
+    <div class="metric"><div class="mlabel">Reduced freq k</div><div class="mvalue"><span id="k">0.377</span></div></div>
+    <div class="metric"><div class="mlabel">|C(k)| (Theodorsen)</div><div class="mvalue"><span id="Ck">0.66</span></div></div>
+  </div>
+
+  <div class="section-label">Results</div>
+  <div class="grid-3">
+    <div class="metric" id="liftCard"><div class="mlabel">Mean lift L̄</div><div class="mvalue"><span id="lift">—</span><span class="munit">N</span></div></div>
+    <div class="metric" id="lwCard"><div class="mlabel">Lift / Weight</div><div class="mvalue"><span id="lw">—</span></div></div>
+    <div class="metric" id="thrustCard"><div class="mlabel">Mean thrust T̄</div><div class="mvalue"><span id="thrust">—</span><span class="munit">N</span></div></div>
+  </div>
+
+  <hr class="divider">
+  <div class="section-label">Sensitivity: lift & thrust vs flapping frequency</div>
+  <div style="position:relative; width:100%; height:220px;">
+    <canvas id="chart" role="img" aria-label="Line chart showing mean lift and thrust as a function of flapping frequency"></canvas>
+  </div>
+  <div style="display:flex; gap:16px; margin-top:8px; font-size:12px; color:var(--color-text-secondary);">
+    <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:3px;background:#378ADD;display:inline-block;"></span> Lift (N)</span>
+    <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:3px;background:#D85A30;display:inline-block;border-top:2px dashed #D85A30;"></span> Thrust (N)</span>
+  </div>
+
+  <p class="note" style="margin-top:1rem;">Reference — HITHawk Harbin Institute of Technology https://doi.org/10.1109/ROBIO49542.2019.8961808: b=1.6m, c=0.3m, W=487g, f=2Hz, U=5m/s, α=10°. Experimental L̄=4.20N, T̄=−1.03N. Calculated L̄=4.58N, T̄=0.93N. This calculator matches the lift result; thrust accuracy remains limited as in the paper.</p>
+  <p class="note" style="margin-top:1rem;">Made for Hackclub event Fallout 09-04-2026 By: Yaswanth Uppalapu
+    <br>Contact: <a href="mailto:yaswanthuppalapu@gmail.com">yaswanthuppalapu@gmail.com</a>
+  </p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const rho = 1.225;
+const g = 9.81;
+
+function theodorsen(k) {
+  const k1 = 0.0455/k, k2 = 0.3/k;
+  const F = 1 - 0.165/(1+k1*k1) - 0.335/(1+k2*k2);
+  const G = (0.165*0.0455/k)/(1+k1*k1) + (0.335*0.3/k)/(1+k2*k2);
+  return {F, G, mag: Math.sqrt(F*F+G*G)};
+}
+
+function compute(W, b, c, f, phi_deg, U, alpha_deg, cd0, eta) {
+  const S = b*c;
+  const AR = b/c;
+  const phi = phi_deg * Math.PI/180;
+  const alpha = alpha_deg * Math.PI/180;
+  const k = Math.PI*f*c/U;
+  const {F, G, mag} = theodorsen(k);
+  const Seff = eta * S;
+  const lift = 0.5*rho*U*U*Seff * 2*Math.PI*Math.sin(alpha) * mag;
+  const thrust = Math.PI*rho*c*b*b*phi*phi*f*f*F - 0.5*rho*U*U*Seff*cd0;
+  const weight_N = W/1000*g;
+  const lw = lift/weight_N;
+  return {S, AR, k, F, G, mag, lift, thrust, lw};
+}
+
+function fmt(v, d) { return (+v).toFixed(d); }
+
+let chartObj = null;
+
+function update() {
+  const W = +document.getElementById('W').value;
+  const b = +document.getElementById('b').value;
+  const c = +document.getElementById('c').value;
+  const f = +document.getElementById('f').value;
+  const phi = +document.getElementById('phi').value;
+  const U = +document.getElementById('U').value;
+  const alpha = +document.getElementById('alpha').value;
+  const cd0 = +document.getElementById('cd0').value;
+  const eta = +document.getElementById('eta').value;
+
+  document.getElementById('Wv').textContent = W;
+  document.getElementById('bv').textContent = fmt(b,2);
+  document.getElementById('cv').textContent = fmt(c,2);
+  document.getElementById('etav').textContent = fmt(eta,2);
+  document.getElementById('fv').textContent = fmt(f,1);
+  document.getElementById('phiv').textContent = fmt(phi,1);
+  document.getElementById('Uv').textContent = fmt(U,1);
+  document.getElementById('alphav').textContent = fmt(alpha,1);
+  document.getElementById('cd0v').textContent = fmt(cd0,3);
+
+  const res = compute(W,b,c,f,phi,U,alpha,cd0,eta);
+
+  document.getElementById('S').textContent = fmt(res.S,3);
+  document.getElementById('AR').textContent = fmt(res.AR,2);
+  document.getElementById('k').textContent = fmt(res.k,3);
+  document.getElementById('Ck').textContent = fmt(res.mag,3);
+
+  document.getElementById('lift').textContent = fmt(res.lift,2);
+  document.getElementById('thrust').textContent = fmt(res.thrust,2);
+  document.getElementById('lw').textContent = fmt(res.lw,2) + 'x';
+
+  const lcard = document.getElementById('liftCard');
+  const lwcard = document.getElementById('lwCard');
+  const tcard = document.getElementById('thrustCard');
+
+  lcard.className = 'metric' + (res.lift >= W/1000*g*0.9 ? ' good' : ' warn');
+  lwcard.className = 'metric' + (res.lw >= 1 ? ' good' : res.lw > 0.8 ? ' warn' : ' bad');
+  tcard.className = 'metric' + (res.thrust > 0 ? ' good' : ' bad');
+
+  const freqs = [0.5,1,1.5,2,2.5,3,3.5,4,4.5,5,6,7,8,9,10];
+  const lifts = freqs.map(ff => +compute(W,b,c,ff,phi,U,alpha,cd0,eta).lift.toFixed(2));
+  const thrusts = freqs.map(ff => +compute(W,b,c,ff,phi,U,alpha,cd0,eta).thrust.toFixed(2));
+
+  if (chartObj) {
+    chartObj.data.labels = freqs;
+    chartObj.data.datasets[0].data = lifts;
+    chartObj.data.datasets[1].data = thrusts;
+    chartObj.update();
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const ctx = document.getElementById('chart').getContext('2d');
+  chartObj = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'Lift (N)', data: [], borderColor: '#378ADD', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 2, tension: 0.3 },
+        { label: 'Thrust (N)', data: [], borderColor: '#D85A30', backgroundColor: 'transparent', borderWidth: 2, borderDash: [5,3], pointRadius: 2, tension: 0.3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { title: { display: true, text: 'flapping frequency (Hz)', font: { size: 11 }, color: '#888' }, ticks: { font: { size: 11 } } },
+        y: { title: { display: true, text: 'force (N)', font: { size: 11 }, color: '#888' }, ticks: { font: { size: 11 } }, grid: { color: 'rgba(128,128,128,0.12)' } }
+      }
+    }
+  });
+
+  ['W','b','c','eta','f','phi','U','alpha','cd0'].forEach(id => {
+    document.getElementById(id).addEventListener('input', update);
+  });
+
+  update();
+});
+</script>

@@ -118,27 +118,105 @@ int run_pid(float target_rpm, float actual_rpm, float &integral, float &prev_err
     return constrain(output, 0, 255);
 }
 
+void set_speed_A(int speed) {
+    analogWrite(MOTOR_A_PIN_1, speed);
+    digitalWrite(MOTOR_A_PIN_2, LOW);
+}
+
+void set_speed_B(int speed) {
+    analogWrite(MOTOR_B_PIN_1, speed);
+    digitalWrite(MOTOR_B_PIN_2, LOW);
+}
+
+void stop_all_motors() {
+    digitalWrite(MOTOR_A_PIN_1, LOW);
+    digitalWrite(MOTOR_A_PIN_2, LOW);
+    digitalWrite(MOTOR_B_PIN_1, LOW);
+    digitalWrite(MOTOR_B_PIN_2, LOW);
+}
+
+void reset_pid() {
+    pid_A_integral = 0;
+    pid_A_prev_error = 0;
+    
+    pid_B_integral = 0;
+    pid_B_prev_error = 0;
+}
+
 void setup() {
     Serial.begin(115200);
     Serial.println("Initilizing...");
-  pinMode(rc_pin, INPUT_PULLDOWN);
-  pinMode(MOTOR_PIN_A1, OUTPUT);
-  pinMode(MOTOR_PIN_A2, OUTPUT);
-  pinMode(MOTOR_PIN_B1, OUTPUT);
-  pinMode(MOTOR_PIN_B2, OUTPUT);
-  pinMode(SLEEP_PIN, OUTPUT);
-  digitalWrite(SLEEP_PIN, HIGH); // Wake up the motor driver
+    //Motor A
+    pinMode(MOTOR_A_PIN1, OUTPUT);
+    pinMode(MOTOR_A_PIN2, OUTPUT);
 
-  pinMode(ENCODER_PIN_A1, INPUT_PULLUP);
-  pinMode(ENCODER_PIN_B1, INPUT_PULLUP);
-  pinMode(ENCODER_PIN_A2, INPUT_PULLUP);
-  pinMode(ENCODER_PIN_B2, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(ENCODER_PIN_A1), encoder_interruptA, RISING);
-  attachInterrupt(digitalPinToInterrupt(ENCODER_PIN_A2), encoder_interruptB, RISING);
-  analogWriteFreq(25000); // Set PWM frequency to 25 kHz
-  analogWriteRange(255); // Set PWM range to 0-255
-  delay(1000); // Allow time for initialization(Just for dramatic effect :) )
-  Serial.println("System Initialized.");
+    //Motor B
+    pinMode(MOTOR_B_PIN1, OUTPUT);
+    pinMode(MOTOR_B_PIN2, OUTPUT);
 
-  
+    //Driver sleep pin
+    pinMode(SLEEP_PIN, OUTPUT);
+    digitalWrite(SLEEP_PIN, HIGH); // Wake up the motor driver
+
+    stop_all_motors(); // Ensure motors are stopped at startup
+    //Encoder pins
+    pinMode(ENCODER_A_CH_A, INPUT_PULLUP);
+    pinMode(ENCODER_A_CH_B, INPUT_PULLUP);
+    pinMode(ENCODER_B_CH_A, INPUT_PULLUP);
+    pinMode(ENCODER_B_CH_B, INPUT_PULLUP);
+
+    attachInterrupt(digitalPinToInterrupt(ENCODER_A_CH_A), encoder_A_interrupt, RISING);
+    attachInterrupt(digitalPinToInterrupt(ENCODER_B_CH_A), encoder_b_interrupt, RISING);
+
+    //RC signal pin
+    pinMode(RC_PIN, INPUT_PULLDOWN);
+    attachInterrupt(digitalPinToInterrupt(RC_PIN), rc_interrupt, CHANGE);
+
+    analogWriteFreq(25000); // Set PWM frequency to 25 kHz
+    analogWriteRange(255); // Set PWM range to 0-255
+
+    //Initial PID timers
+    pid_A_last_time = millis();
+    pid_B_last_time = millis();
+    last_rpm_time = millis();
+
+    delay(1000); // Allow time for initialization(Just for dramatic effect :) )
+    Serial.println("System Initialized.");
 }
+
+void loop() {
+    update_rpm();
+    int target_rpm = map(rc_pulse_us, 1000, 2000, 0, MAX_RPM);
+    int speed_A = run_pid(target_rpm, rpm_A, pid_integral_A, pid_previous_error_A, pid_A_last_time);
+    int speed_B = run_pid(target_rpm, rpm_B, pid_integral_B, pid_previous_error_B, pid_B_last_time);
+
+    if (speed_A >= 0) {
+        set_speed_A(speed_A);
+    } else {
+        digitalWrite(MOTOR_A_PIN_1, LOW);
+        digitalWrite(MOTOR_A_PIN_2, LOW);
+    }
+
+    if (speed_B >= 0) {
+        set_speed_B(speed_B);
+    } else {
+        digitalWrite(MOTOR_B_PIN_1, LOW);
+        digitalWrite(MOTOR_B_PIN_2, LOW);
+    }
+
+    // Debugging output
+    Serial.print("Target RPM: ");
+    Serial.print(target_rpm);
+    Serial.print(" | RPM A: ");
+    Serial.print(rpm_A);
+    Serial.print(" | RPM B: ");
+    Serial.print(rpm_B);
+    Serial.print(" | Speed A: ");
+    Serial.print(speed_A);
+    Serial.print(" | Speed B: ");
+    Serial.println(speed_B);
+
+    delay(10); // Loop delay to reduce CPU load and serial spam
+}
+// Made with <3 by Yaswanth Uppalapu
+// for Fallout Hackclub 
